@@ -1,5 +1,12 @@
-import requests, string, random, threading, time, ctypes, os, uuid
-from random import choice 
+import requests
+import string
+import random
+import threading
+import time
+import ctypes
+import os
+import uuid
+from random import choice
 
 os.system('cls' if os.name == 'nt' else 'clear')
 
@@ -16,7 +23,13 @@ def get_timestamp():
     timestamp = f'[\x1b[90m{time_idk}\x1b[0m]'
     return timestamp
 
+def get_proxies_from_file(file_path):
+    with open(file_path, 'r') as file:
+        proxies = [line.strip() for line in file if line.strip()]
+    return proxies
+
 def gen(proxy):
+    ip, port, user, password = proxy.split(":")
     while True:
         url = "https://api.discord.gx.games/v1/direct-fulfillment"
         headers = {
@@ -30,14 +43,8 @@ def gen(proxy):
         }
 
         try:
-            if proxy is not None:
-                credentials, host = proxy.split('@')
-                user, password = credentials.split(':')
-                host, port = host.split(':')
-                formatted_proxy = f"http://{user}:{password}@{host}:{port}"
-                response = requests.post(url, json=data, headers=headers, proxies={'http': formatted_proxy, 'https': formatted_proxy}, timeout=5)
-            else:
-                response = requests.post(url, json=data, headers=headers, timeout=5)
+            formatted_proxy = f"http://{user}:{password}@{ip}:{port}"
+            response = requests.post(url, json=data, headers=headers, proxies={'http': formatted_proxy, 'https': formatted_proxy}, timeout=5)
 
             if response.status_code == 200:
                 token = response.json().get('token')
@@ -57,16 +64,18 @@ def gen(proxy):
         except Exception as e:
             print(f"{get_timestamp()} {red} Request Failed : {e}")
 
+
 def main():
     num_threads = int(input(f"{get_timestamp()} {blue} Enter Number Of Threads : "))
-    with open("proxies.txt") as f:
-        proxies = f.read().splitlines()
+    
+    proxies = get_proxies_from_file('proxies.txt')
 
     threads = []
     for i in range(num_threads):
         proxy = choice(proxies) if proxies else None
-        thread = threading.Thread(target=gen, args=(proxy,))
-        threads.append(thread)
+        if proxy:
+            thread = threading.Thread(target=gen, args=(proxy,))
+            threads.append(thread)
 
     for thread in threads:
         thread.start()
